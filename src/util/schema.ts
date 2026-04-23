@@ -1,7 +1,7 @@
 import type { SchemaDescription } from "../adapters/types.ts";
 
 export function describeSchema(schema: unknown): SchemaDescription {
-	if (!schema || typeof schema !== "object")
+	if (!schema || (typeof schema !== "object" && typeof schema !== "function"))
 		return { vendor: "desconhecido", note: "schema opaco" };
 
 	const std = (schema as { "~standard"?: { vendor?: unknown } })["~standard"];

@@ -1,6 +1,6 @@
 {
 	"name": "@juicerq/agent-api",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "CLI para invocar procedures oRPC/tRPC in-process — list, show, call, via agent-api.config.ts",
 	"keywords": [
 		"agent",
