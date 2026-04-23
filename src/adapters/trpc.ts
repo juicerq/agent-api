@@ -22,64 +22,84 @@ type TrpcProcedure = ((opts: {
 	_def: TrpcProcedureDef;
 };
 
+interface TrpcOutputTransformer {
+	serialize: (value: unknown) => unknown;
+}
+
 function getProcedures(router: AnyTRPCRouter) {
 	const def = router._def as unknown as { procedures: Record<string, TrpcProcedure> };
 	return def.procedures;
 }
 
-export const trpcAdapter: RpcAdapter<AnyTRPCRouter, unknown> = {
-	name: "trpc",
+function getOutputTransformer(router: AnyTRPCRouter): TrpcOutputTransformer | null {
+	const cfg = (router._def as unknown as { _config?: { transformer?: unknown } })._config;
+	const t = cfg?.transformer as { output?: TrpcOutputTransformer } | undefined;
+	return t?.output?.serialize ? t.output : null;
+}
 
-	list(router) {
-		return Object.keys(getProcedures(router)).sort();
-	},
+function buildTrpcAdapter(serializeOutput: boolean): RpcAdapter<AnyTRPCRouter, unknown> {
+	return {
+		name: "trpc",
 
-	describe(router, path) {
-		const proc = getProcedures(router)[path];
-		if (!proc) return null;
+		list(router) {
+			return Object.keys(getProcedures(router)).sort();
+		},
 
-		const def = proc._def;
-		const inputs = def.inputs ?? [];
-		const firstInput = inputs[0];
+		describe(router, path) {
+			const proc = getProcedures(router)[path];
+			if (!proc) return null;
 
-		return {
-			path,
-			type: def.type,
-			input: firstInput ? describeSchema(firstInput) : null,
-			meta: def.meta ?? null,
-		} satisfies ProcedureMeta;
-	},
+			const def = proc._def;
+			const inputs = def.inputs ?? [];
+			const firstInput = inputs[0];
 
-	async call(router, path, input, context) {
-		const proc = getProcedures(router)[path];
-		if (typeof proc !== "function") {
-			throw new Error(`Procedure não é callable: ${path}`);
-		}
+			return {
+				path,
+				type: def.type,
+				input: firstInput ? describeSchema(firstInput) : null,
+				meta: def.meta ?? null,
+			} satisfies ProcedureMeta;
+		},
 
-		const type = proc._def.type;
-		if (type === "subscription") {
-			throw new Error(`Subscriptions não são suportadas pelo CLI: ${path}`);
-		}
+		async call(router, path, input, context) {
+			const proc = getProcedures(router)[path];
+			if (typeof proc !== "function") {
+				throw new Error(`Procedure não é callable: ${path}`);
+			}
 
-		return await proc({
-			ctx: context,
-			input,
-			path,
-			type,
-			getRawInput: async () => input,
-			signal: undefined,
-		});
-	},
-};
+			const type = proc._def.type;
+			if (type === "subscription") {
+				throw new Error(`Subscriptions não são suportadas pelo CLI: ${path}`);
+			}
+
+			const result = await proc({
+				ctx: context,
+				input,
+				path,
+				type,
+				getRawInput: async () => input,
+				signal: undefined,
+			});
+
+			if (!serializeOutput) return result;
+			const transformer = getOutputTransformer(router);
+			return transformer ? transformer.serialize(result) : result;
+		},
+	};
+}
+
+export const trpcAdapter = buildTrpcAdapter(false);
 
 export function defineTrpcConfig<TRouter extends AnyTRPCRouter>(config: {
 	router: TRouter;
 	context: (
 		args: AgentApiContextArgs,
 	) => inferRouterContext<TRouter> | Promise<inferRouterContext<TRouter>>;
+	serializeOutput?: boolean;
 }): AgentApiConfig<TRouter, inferRouterContext<TRouter>> {
+	const adapter = buildTrpcAdapter(config.serializeOutput ?? false);
 	return {
-		adapter: trpcAdapter as RpcAdapter<TRouter, inferRouterContext<TRouter>>,
+		adapter: adapter as RpcAdapter<TRouter, inferRouterContext<TRouter>>,
 		router: config.router,
 		context: config.context,
 	};

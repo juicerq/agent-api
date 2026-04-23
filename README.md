@@ -52,6 +52,20 @@ export default defineTrpcConfig({
 });
 ```
 
+#### `serializeOutput`
+
+Se o router usa um `transformer` (ex: `superjson`), por padrão o CLI devolve o valor cru — `JSON.stringify` nativo, sem meta. Opt-in pra aplicar `transformer.output.serialize`:
+
+```ts
+export default defineTrpcConfig({
+	router: appRouter,
+	context: () => ({ user: null }),
+	serializeOutput: true,
+});
+```
+
+Com a flag ligada, `bun agent-api call foo` devolve `{ json, meta }` — o mesmo shape que um client HTTP recebe. Útil se a procedure retorna `Date`, `BigInt`, `Map`, etc. Sem o opt-in, `Date` vira ISO string via `JSON.stringify` (legível, mas `Map`/`BigInt` perdem info).
+
 ## Comandos
 
 ### `list [filter]`
@@ -70,7 +84,7 @@ bunx agent-api list counter
 
 ### `show <path>`
 
-Imprime metadata (tipo, meta, errors) e JSON Schema do input/output quando o schema expõe introspecção (Zod 4+, Arktype).
+Imprime metadata (tipo, meta, errors) e JSON Schema do input/output quando o schema expõe introspecção. Suportados: Zod 4+ (`toJSONSchema`), Arktype (`toJsonSchema`), e qualquer schema com `~standard` (Standard Schema v1) + método de conversão.
 
 ```sh
 bunx agent-api show counter.get --pretty

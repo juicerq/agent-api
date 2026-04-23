@@ -35,7 +35,12 @@ describe.each(FIXTURES)("$name adapter", ({ config: CONFIG }) => {
 		test("lista procedures ordenadas", async () => {
 			const { stdout, exitCode } = await run(CONFIG, ["list"]);
 			expect(exitCode).toBe(0);
-			expect(stdout.trim().split("\n")).toEqual(["echo", "nested.whoami", "ping"]);
+			expect(stdout.trim().split("\n")).toEqual([
+				"echo",
+				"echoArk",
+				"nested.whoami",
+				"ping",
+			]);
 		});
 
 		test("filtra por substring", async () => {
@@ -52,6 +57,17 @@ describe.each(FIXTURES)("$name adapter", ({ config: CONFIG }) => {
 			expect(parsed.path).toBe("echo");
 			expect(parsed.input.vendor).toBe("zod");
 			expect(parsed.input.jsonSchema).toBeDefined();
+		});
+
+		test("arktype é reconhecido (schema callable)", async () => {
+			const { stdout, exitCode } = await run(CONFIG, ["show", "echoArk"]);
+			expect(exitCode).toBe(0);
+			const parsed = JSON.parse(stdout);
+			expect(parsed.input.vendor).toBe("arktype");
+			expect(parsed.input.jsonSchema).toMatchObject({
+				type: "object",
+				properties: { text: { type: "string" } },
+			});
 		});
 
 		test("erro com mensagem pt-br quando procedure não existe", async () => {
@@ -71,6 +87,17 @@ describe.each(FIXTURES)("$name adapter", ({ config: CONFIG }) => {
 		test("--input inline parseia JSON", async () => {
 			const { stdout } = await run(CONFIG, ["call", "echo", "--input", '{"text":"hi"}']);
 			expect(JSON.parse(stdout)).toEqual({ said: "hi" });
+		});
+
+		test("call funciona com procedure usando schema arktype", async () => {
+			const { stdout, exitCode } = await run(CONFIG, [
+				"call",
+				"echoArk",
+				"--input",
+				'{"text":"ark"}',
+			]);
+			expect(exitCode).toBe(0);
+			expect(JSON.parse(stdout)).toEqual({ said: "ark" });
 		});
 
 		test("--input-file lê payload do disco", async () => {
@@ -117,6 +144,18 @@ describe.each(FIXTURES)("$name adapter", ({ config: CONFIG }) => {
 			const exitCode = await proc.exited;
 			expect(exitCode).toBe(0);
 		});
+	});
+});
+
+describe("trpc serializeOutput", () => {
+	const CONFIG = resolve(import.meta.dir, "fixtures/trpc.serialize.config.ts");
+
+	test("aplica transformer.output.serialize no resultado", async () => {
+		const { stdout, exitCode } = await run(CONFIG, ["call", "today"]);
+		expect(exitCode).toBe(0);
+		const parsed = JSON.parse(stdout);
+		expect(parsed.json.now).toBe("2026-01-01T00:00:00.000Z");
+		expect(parsed.meta.values.now).toEqual(["Date"]);
 	});
 });
 
