@@ -1,20 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { formatError, formatJson } from "../src/util/output.ts";
-import { walkDottedPath } from "../src/util/resolveProcedure.ts";
-
-describe("walkDottedPath", () => {
-	test("resolve caminho aninhado", () => {
-		expect(walkDottedPath({ a: { b: { c: 42 } } }, "a.b.c")).toBe(42);
-	});
-
-	test("retorna null ao cruzar valor não-objeto", () => {
-		expect(walkDottedPath({ a: 1 }, "a.b")).toBeNull();
-	});
-
-	test("retorna null quando chave ausente", () => {
-		expect(walkDottedPath({}, "a.b")).toBeNull();
-	});
-});
 
 describe("formatJson", () => {
 	test("pretty indenta com 2 espaços", () => {

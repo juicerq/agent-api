@@ -49,7 +49,7 @@ function parseArgv(argv: string[]): Parsed {
 	return { positional, flags, booleans };
 }
 
-const HELP = `agent-api — CLI para invocar procedures oRPC in-process
+const HELP = `agent-api — CLI para invocar procedures oRPC/tRPC in-process
 
 Uso:
   agent-api list [filter]
@@ -61,15 +61,24 @@ Flags globais:
   --pretty            Formata output JSON com indent 2
   -h, --help          Mostra esta ajuda
 
-Exemplo de config:
+Exemplo de config (oRPC):
   // agent-api.config.ts
-  import { defineConfig } from "@juicerq/agent-api";
+  import { defineOrpcConfig } from "@juicerq/agent-api/orpc";
   import { appRouter } from "./src/router.ts";
-  import { db } from "./src/db/client.ts";
 
-  export default defineConfig({
+  export default defineOrpcConfig({
     router: appRouter,
-    context: async ({ as }) => ({ user: null, db }),
+    context: async ({ as }) => ({ user: null }),
+  });
+
+Exemplo de config (tRPC):
+  // agent-api.config.ts
+  import { defineTrpcConfig } from "@juicerq/agent-api/trpc";
+  import { appRouter } from "./src/router.ts";
+
+  export default defineTrpcConfig({
+    router: appRouter,
+    context: async ({ as }) => ({ user: null }),
   });
 `;
 
@@ -87,10 +96,10 @@ async function main() {
 	const pretty = parsed.booleans.has("--pretty");
 	const { config } = await loadConfig(process.cwd(), parsed.flags["--config"]);
 
-	if (command === "list") return listCommand(config.router, rest[0]);
+	if (command === "list") return listCommand(config, rest[0]);
 
 	if (command === "show") {
-		return showCommand(config.router, requirePath(rest[0], "show"), pretty);
+		return showCommand(config, requirePath(rest[0], "show"), pretty);
 	}
 
 	if (command === "call") {

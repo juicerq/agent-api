@@ -9,6 +9,7 @@ const REPO_ROOT = resolve(import.meta.dir, "..");
 const VALID_CONFIG = `
 import { defineConfig } from "${REPO_ROOT}/src/index.ts";
 export default defineConfig({
+	adapter: { name: "orpc", list: () => [], describe: () => null, call: async () => null },
 	router: {},
 	context: () => ({}),
 });
@@ -27,6 +28,7 @@ describe("loadConfig", () => {
 
 		const { path, config } = await loadConfig(nested);
 		expect(path).toBe(join(root, "agent-api.config.ts"));
+		expect(config).toHaveProperty("adapter");
 		expect(config).toHaveProperty("router");
 		expect(config).toHaveProperty("context");
 	});
@@ -54,7 +56,7 @@ describe("loadConfig", () => {
 		);
 	});
 
-	test("erro quando default export não tem router+context", async () => {
+	test("erro quando default export não tem adapter+router+context", async () => {
 		const root = await scratch();
 		await writeFile(join(root, "agent-api.config.ts"), "export default { foo: 1 };");
 

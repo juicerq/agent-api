@@ -1,8 +1,5 @@
-import type { AnyRouter } from "@orpc/server";
-import { createRouterClient } from "@orpc/server";
 import type { AgentApiConfig } from "../index.ts";
 import { formatJson } from "../util/output.ts";
-import { walkDottedPath } from "../util/resolveProcedure.ts";
 
 export interface CallOptions {
 	path: string;
@@ -11,21 +8,8 @@ export interface CallOptions {
 	pretty: boolean;
 }
 
-export async function callCommand(
-	config: AgentApiConfig<AnyRouter>,
-	options: CallOptions,
-) {
+export async function callCommand(config: AgentApiConfig, options: CallOptions) {
 	const context = await config.context({ as: options.as });
-	const client = createRouterClient(config.router, { context });
-
-	const target = walkDottedPath(client, options.path);
-
-	if (typeof target !== "function") {
-		throw new Error(`Procedure não é callable: ${options.path}`);
-	}
-
-	const procedure = target as (input?: unknown) => Promise<unknown>;
-	const result = await procedure(options.input);
-
+	const result = await config.adapter.call(config.router, options.path, options.input, context);
 	console.log(formatJson(result, options.pretty));
 }

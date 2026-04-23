@@ -1,5 +1,4 @@
 import { dirname, isAbsolute, resolve } from "node:path";
-import type { AnyRouter } from "@orpc/server";
 import type { AgentApiConfig } from "./index.ts";
 
 const CONFIG_FILENAME = "agent-api.config.ts";
@@ -10,7 +9,7 @@ export async function loadConfig(cwd: string, configFlag?: string) {
 
 	if (!isConfig(mod.default)) {
 		throw new Error(
-			`${path} não exporta default válido. Use \`export default defineConfig({ router, context })\`.`,
+			`${path} não exporta default válido. Use \`export default defineOrpcConfig({...})\` ou \`defineTrpcConfig({...})\`.`,
 		);
 	}
 
@@ -26,9 +25,7 @@ async function resolvePath(cwd: string, configFlag?: string) {
 
 	const found = await walkUp(cwd);
 	if (!found) {
-		throw new Error(
-			`${CONFIG_FILENAME} não encontrado a partir de ${cwd}. Use --config <path>.`,
-		);
+		throw new Error(`${CONFIG_FILENAME} não encontrado a partir de ${cwd}. Use --config <path>.`);
 	}
 	return found;
 }
@@ -44,6 +41,8 @@ async function walkUp(cwd: string) {
 	}
 }
 
-function isConfig(value: unknown): value is AgentApiConfig<AnyRouter> {
-	return !!value && typeof value === "object" && "router" in value && "context" in value;
+function isConfig(value: unknown): value is AgentApiConfig {
+	if (!value || typeof value !== "object") return false;
+	const obj = value as Record<string, unknown>;
+	return "adapter" in obj && "router" in obj && "context" in obj;
 }
