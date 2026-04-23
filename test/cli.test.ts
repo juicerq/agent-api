@@ -11,15 +11,10 @@ const FIXTURES = [
 
 async function run(configPath: string, args: string[], stdin?: string) {
 	const proc = Bun.spawn(["bun", CLI, "--config", configPath, ...args], {
-		stdin: stdin !== undefined ? "pipe" : "ignore",
+		stdin: stdin !== undefined ? new Response(stdin) : "ignore",
 		stdout: "pipe",
 		stderr: "pipe",
 	});
-
-	if (stdin !== undefined && proc.stdin) {
-		proc.stdin.write(stdin);
-		await proc.stdin.end();
-	}
 
 	const [stdout, stderr] = await Promise.all([
 		new Response(proc.stdout).text(),
@@ -35,12 +30,7 @@ describe.each(FIXTURES)("$name adapter", ({ config: CONFIG }) => {
 		test("lista procedures ordenadas", async () => {
 			const { stdout, exitCode } = await run(CONFIG, ["list"]);
 			expect(exitCode).toBe(0);
-			expect(stdout.trim().split("\n")).toEqual([
-				"echo",
-				"echoArk",
-				"nested.whoami",
-				"ping",
-			]);
+			expect(stdout.trim().split("\n")).toEqual(["echo", "echoArk", "nested.whoami", "ping"]);
 		});
 
 		test("filtra por substring", async () => {
@@ -168,10 +158,26 @@ describe("cli-level errors", () => {
 		expect(stderr).toInclude("Flag desconhecida");
 	});
 
+	test("flag com valor não aceita outra flag como argumento", async () => {
+		const { stderr, exitCode } = await run(CONFIG, ["call", "echo", "--input-file", "--pretty"]);
+		expect(exitCode).toBe(1);
+		expect(stderr).toInclude("--input-file requer argumento");
+	});
+
 	test("sem argumento no call sai com erro", async () => {
 		const { stderr, exitCode } = await run(CONFIG, ["call"]);
 		expect(exitCode).toBe(1);
 		expect(stderr).toInclude("Uso: agent-api call");
+	});
+
+	test("argumentos posicionais extras falham em vez de serem ignorados", async () => {
+		const show = await run(CONFIG, ["show", "ping", "extra"]);
+		expect(show.exitCode).toBe(1);
+		expect(show.stderr).toInclude("Uso: agent-api show");
+
+		const call = await run(CONFIG, ["call", "ping", "extra"]);
+		expect(call.exitCode).toBe(1);
+		expect(call.stderr).toInclude("Uso: agent-api call");
 	});
 
 	test("sem comando mostra help e sai 1", async () => {

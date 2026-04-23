@@ -2,6 +2,7 @@ export interface SchemaDescription {
 	vendor: string;
 	jsonSchema?: unknown;
 	note?: string;
+	schemas?: SchemaDescription[];
 }
 
 export interface ProcedureMeta {

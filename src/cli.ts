@@ -31,7 +31,7 @@ function parseArgv(argv: string[]): Parsed {
 
 		if (FLAGS_WITH_VALUE.has(arg)) {
 			const value = argv[++i];
-			if (value === undefined) throw new Error(`${arg} requer argumento`);
+			if (value === undefined || value.startsWith("--")) throw new Error(`${arg} requer argumento`);
 			flags[arg] = value;
 			continue;
 		}
@@ -96,20 +96,31 @@ async function main() {
 	const pretty = parsed.booleans.has("--pretty");
 	const { config } = await loadConfig(process.cwd(), parsed.flags["--config"]);
 
-	if (command === "list") return listCommand(config, rest[0]);
+	if (command === "list") {
+		if (rest.length > 1) throw new Error("Uso: agent-api list [filter]");
+		return listCommand(config, rest[0]);
+	}
 
 	if (command === "show") {
+		if (rest.length !== 1) throw new Error("Uso: agent-api show <path>");
 		return showCommand(config, requirePath(rest[0], "show"), pretty);
 	}
 
 	if (command === "call") {
+		const [path, ...extra] = rest;
+		const unexpected = extra.filter((arg) => arg !== "-");
+		if (unexpected.length > 0)
+			throw new Error(
+				"Uso: agent-api call <path> [--input <json>] [--input-file <path>] [-] [--as <id>]",
+			);
+
 		const input = await resolveInput({
 			input: parsed.flags["--input"],
 			inputFile: parsed.flags["--input-file"],
 			stdin: rest.includes("-"),
 		});
 		return callCommand(config, {
-			path: requirePath(rest[0], "call"),
+			path: requirePath(path, "call"),
 			input,
 			as: parsed.flags["--as"],
 			pretty,

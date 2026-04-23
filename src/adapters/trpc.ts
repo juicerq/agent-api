@@ -51,12 +51,11 @@ function buildTrpcAdapter(serializeOutput: boolean): RpcAdapter<AnyTRPCRouter, u
 
 			const def = proc._def;
 			const inputs = def.inputs ?? [];
-			const firstInput = inputs[0];
 
 			return {
 				path,
 				type: def.type,
-				input: firstInput ? describeSchema(firstInput) : null,
+				input: describeInputSchemas(inputs),
 				meta: def.meta ?? null,
 			} satisfies ProcedureMeta;
 		},
@@ -85,6 +84,23 @@ function buildTrpcAdapter(serializeOutput: boolean): RpcAdapter<AnyTRPCRouter, u
 			const transformer = getOutputTransformer(router);
 			return transformer ? transformer.serialize(result) : result;
 		},
+	};
+}
+
+function describeInputSchemas(inputs: unknown[]) {
+	if (inputs.length === 0) return null;
+	if (inputs.length === 1) return describeSchema(inputs[0]);
+
+	const schemas = inputs.map((input) => describeSchema(input));
+	const jsonSchemas = schemas
+		.map((schema) => schema.jsonSchema)
+		.filter((schema) => schema !== undefined);
+
+	return {
+		vendor: "trpc",
+		jsonSchema: jsonSchemas.length === schemas.length ? { allOf: jsonSchemas } : undefined,
+		note: "procedure com múltiplos input parsers; tRPC combina estes schemas em ordem",
+		schemas,
 	};
 }
 

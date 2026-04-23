@@ -9,6 +9,14 @@ describe("formatJson", () => {
 	test("compact sem whitespace", () => {
 		expect(formatJson({ a: 1 }, false)).toBe('{"a":1}');
 	});
+
+	test("undefined top-level vira JSON null", () => {
+		expect(formatJson(undefined, false)).toBe("null");
+	});
+
+	test("BigInt vira string JSON em vez de lançar", () => {
+		expect(formatJson({ id: 1n }, false)).toBe('{"id":"1"}');
+	});
 });
 
 describe("formatError", () => {
@@ -28,5 +36,11 @@ describe("formatError", () => {
 	test("valor não-Error vira JSON puro", () => {
 		expect(JSON.parse(formatError("str"))).toBe("str");
 		expect(JSON.parse(formatError({ x: 1 }))).toEqual({ x: 1 });
+	});
+
+	test("Error com BigInt em props extras continua serializável", () => {
+		const err = Object.assign(new Error("boom"), { id: 1n });
+		const parsed = JSON.parse(formatError(err));
+		expect(parsed.id).toBe("1");
 	});
 });
