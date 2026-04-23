@@ -117,6 +117,7 @@ function requirePath(path: string | undefined, command: string) {
 
 try {
 	await main();
+	process.exit(0);
 } catch (err) {
 	console.error(formatError(err));
 	process.exit(1);

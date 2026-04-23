@@ -129,4 +129,14 @@ describe("error paths", () => {
 		const exitCode = await proc.exited;
 		expect(exitCode).toBe(0);
 	});
+
+	test("processo termina mesmo com handles abertos após call", async () => {
+		const proc = Bun.spawn(["bun", CLI, "--config", CONFIG, "call", "ping"], {
+			stdout: "pipe",
+			stderr: "pipe",
+			timeout: 3000,
+		});
+		const exitCode = await proc.exited;
+		expect(exitCode).toBe(0);
+	});
 });
