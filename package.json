@@ -1,0 +1,56 @@
+{
+	"name": "@juicerq/agent-api",
+	"version": "0.1.0",
+	"description": "CLI para invocar procedures oRPC in-process — list, show, call, via agent-api.config.ts",
+	"keywords": [
+		"orpc",
+		"cli",
+		"rpc",
+		"bun",
+		"agent",
+		"dev-tool"
+	],
+	"license": "MIT",
+	"author": "Juicerq",
+	"homepage": "https://github.com/juicerq/agent-api#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/juicerq/agent-api.git"
+	},
+	"bugs": {
+		"url": "https://github.com/juicerq/agent-api/issues"
+	},
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"bin": {
+		"agent-api": "./src/cli.ts"
+	},
+	"files": [
+		"src"
+	],
+	"engines": {
+		"bun": ">=1.3"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"typecheck": "tsgo -p tsconfig.json",
+		"lint": "oxlint . --no-error-on-unmatched-pattern",
+		"format": "oxfmt .",
+		"test": "bun test"
+	},
+	"peerDependencies": {
+		"@orpc/server": "^1.14.0"
+	},
+	"devDependencies": {
+		"@orpc/server": "^1.14.0",
+		"@typescript/native-preview": "^7.0.0-dev.20260422.1",
+		"bun-types": "^1.3.13",
+		"oxfmt": "^0.46.0",
+		"oxlint": "^1.61.0",
+		"zod": "^4.3.6"
+	}
+}
